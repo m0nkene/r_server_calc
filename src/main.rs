@@ -1,21 +1,32 @@
-use iced::widget::{Button, text, Text, Grid, Column, Container, Row, column, container, row};
+use iced::widget::{Button, text, Text, Grid, Column, Container, Row, column, container, row, image, Image, text_input};
 use iced::{Alignment, Fill, Element, Theme, Renderer, Length, FillPortion, Settings, Size, window};
 
 
 
-//struct that sets the type of data that the object can take. structs are basically arrays/tuples that can be used as immutable datatypes
-#[derive(Default)]
-struct TextStack{
-    value: String,
+pub fn main() -> iced::Result{
+   
+    iced::application(Calculator::new, Calculator::update, Calculator::view)
+        .run()
 }
 
 
 
-
-#[derive(Default)]
 struct Calculator{
-    value: String,
+    xs_img_handle : image::Handle,
+
+    xs_value: String,
 }
+
+impl Default for Calculator{
+    fn default() -> Self{
+        Self{
+            xs_img_handle : image::Handle::from_bytes(include_bytes!("../resources/ibm.png").to_vec()),
+            xs_value : "Target IOPS here".to_string(),
+        }
+        
+    }
+}
+
 
 //enum type since the message can have multiple, but predetermined types
 #[derive(Debug, Clone)]
@@ -28,9 +39,7 @@ enum Message {
 impl Calculator{
 
     fn new() -> Self{
-        Self{
-            value: "".to_string(),
-        }
+        Self::default()
     }
 
     fn update (&mut self, message: Message){
@@ -39,7 +48,7 @@ impl Calculator{
                 todo!();
             },
             Message::Clear=>{
-                self.value="".to_string();
+                self.xs_value="".to_string();
             },
         }
         
@@ -49,7 +58,9 @@ impl Calculator{
     fn view (&self) -> Element<'_, Message> {
 
 
-        Container::new(Column::new())
+        row![
+            Image::new(self.xs_img_handle.clone())
+        ]
 
         //.width(Length::Fill)
         .padding(10)
@@ -59,9 +70,3 @@ impl Calculator{
 }
 
 
-pub fn main() -> iced::Result{
-   
-    iced::application(Calculator::new, Calculator::update, Calculator::view)
-        .window_size(iced::Size::new(400.0, 500.0))
-        .run()
-}
