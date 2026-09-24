@@ -16,6 +16,7 @@ struct Calculator{
     xs_targ_iops: String,
     xs_cnt_2u: String,
     xs_cnt_4u: String,
+    xs_rack_cnt: String,
     xs_4u_cb: bool,
 }
 
@@ -26,6 +27,7 @@ impl Default for Calculator{
             xs_targ_iops : "".to_string(),
             xs_cnt_2u: "0".to_string(),
             xs_cnt_4u: "0".to_string(),
+            xs_rack_cnt: "0".to_string(),
             xs_4u_cb: false,
         }
         
@@ -67,29 +69,82 @@ impl Calculator{
     //manually building the GUI, gonna be messy, sorry
     fn view (&self) -> Element<'_, Message> {
 
-        let xs_text_box = text_input("Target IOPS here", &self.xs_targ_iops).on_input(Message::XSContentChanged);
+
+        let xs_text_box = text_input("Target IOPS here", &self.xs_targ_iops)
+            .on_input(Message::XSContentChanged);
         let xs_4u_check_box = checkbox(self.xs_4u_cb).on_toggle(Message::XSCBToggled);
         let xs_2u_out = text(self.xs_cnt_2u.clone());
         let xs_4u_out = text(self.xs_cnt_4u.clone());
+        let xs_rack_out = text(self.xs_rack_cnt.clone());
 
         
-        row![
-            Image::new(self.xs_img_handle.clone()),
-            xs_text_box,
-            xs_4u_check_box,
-            column![
-                xs_4u_out,
-                xs_2u_out,
-            ],
+        
+       //building input column - col1
+        let col1 = Column::new()
+            .width(Length::FillPortion(1))
+            .push(
+                //XServer row
+                Row::new()
+                    .push(
+                        Image::new(self.xs_img_handle.clone())
+                            .width(Length::FillPortion(1))
+                    )
+                    .push(
+                        Column::new()
+                            .push(
+                                xs_text_box
+                                    .width(Length::FillPortion(3))
+                            )
+                            .push(
+                                xs_4u_check_box
+                                    .label("4U Available?")
+                            )
+                            
+                            .padding(20)
 
+                    )
+                        
+                    
+            );
 
+        
+        
+        
+            //Building the output column - col2
+            let col2 = Column::new()
+            .width(Length::FillPortion(1))
+            .push(
+                Row::new()
+                    .push(
+                        Image::new(self.xs_img_handle.clone())
+                            .width(Length::FillPortion(1))
+                    )
+                    .push(
+                        Column::new()
+                            .push(
+                                xs_4u_out
+                            )
+                            .push(
+                                xs_2u_out
+                            )
+                            .push(
+                                xs_rack_out
+                            )
+                        .width(Length::FillPortion(3))
+                    )
             
+            );
+
+
+        
+        
+        //outputting final columns to the main display
+            row![
+            col1, 
+            col2,
         ]
-
-
-
-
-        //.width(Length::Fill)
+        
+            //.width(Length::Fill)
         .padding(10)
         .into()
 
@@ -104,6 +159,7 @@ impl Calculator{
         let mut target_4u = 0;
         let mut target_2u = 0;
         let mut value = 0;
+        let mut racks = 0;
         let mut cb_state = false;
 
         //match statement to set the server type specific variables; specifically the input, and the checkbox st
@@ -133,7 +189,14 @@ impl Calculator{
                 target_2u += 1;
             }
 
-            println!("4u: {}, 2u: {}", target_4u, target_2u);
+            //calculating racks, prioritizing 4us, and not filling with 2us
+            racks = total/72000;
+            if (racks*72000) < total{
+                racks = racks + 1;
+            }
+            
+            
+            println!("XS_4u: {}, XS_2u: {}", target_4u, target_2u);
         } 
         
         //same math as above to calculate server counts, but forcing 4u count to 0
@@ -147,7 +210,13 @@ impl Calculator{
                 target_2u += 1;
             }
 
-            println!("4u: {}, 2u: {}", target_4u, target_2u);
+            //assume there are no 4us, simplifying calculations
+            racks = total/80000;
+            if (racks*80000) < total{
+                racks = racks + 1;
+            }
+
+            println!("XS_4u: {}, XS_2u: {}", target_4u, target_2u);
         }
 
 
@@ -157,6 +226,7 @@ impl Calculator{
             0 => {
                 self.xs_cnt_4u = target_4u.to_string();
                 self.xs_cnt_2u = target_2u.to_string();
+                self.xs_rack_cnt = racks.to_string();
             },
             _ => {println!("Oopsie poopsies2");},
         }
