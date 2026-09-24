@@ -132,6 +132,8 @@ impl Calculator{
             if (target_4u * 12000)+(target_2u * 5000) < total{
                 target_2u += 1;
             }
+
+            println!("4u: {}, 2u: {}", target_4u, target_2u);
         } 
         
         //same math as above to calculate server counts, but forcing 4u count to 0
@@ -144,6 +146,8 @@ impl Calculator{
             if (target_4u * 12000)+(target_2u * 5000) < total{
                 target_2u += 1;
             }
+
+            println!("4u: {}, 2u: {}", target_4u, target_2u);
         }
 
 
