@@ -1,4 +1,4 @@
-use iced::widget::{Button, text, Text, Grid, Column, Container, Row, column, container, row, image, Image, text_input};
+use iced::widget::{Button, text, Text, Grid, Column, Container, Row, column, container, row, image, Image, text_input, checkbox};
 use iced::{Alignment, Fill, Element, Theme, Renderer, Length, FillPortion, Settings, Size, window};
 
 
@@ -12,16 +12,21 @@ pub fn main() -> iced::Result{
 
 
 struct Calculator{
-    xs_img_handle : image::Handle,
-
-    xs_value: String,
+    xs_img_handle: image::Handle,
+    xs_targ_iops: String,
+    xs_cnt_2u: String,
+    xs_cnt_4u: String,
+    xs_4u_cb: bool,
 }
 
 impl Default for Calculator{
     fn default() -> Self{
         Self{
             xs_img_handle : image::Handle::from_bytes(include_bytes!("../resources/ibm.png").to_vec()),
-            xs_value : "Target IOPS here".to_string(),
+            xs_targ_iops : "".to_string(),
+            xs_cnt_2u: "0".to_string(),
+            xs_cnt_4u: "0".to_string(),
+            xs_4u_cb: false,
         }
         
     }
@@ -31,8 +36,8 @@ impl Default for Calculator{
 //enum type since the message can have multiple, but predetermined types
 #[derive(Debug, Clone)]
 enum Message {
-    Evaluate,
-    Clear,
+    XSContentChanged(String),
+    XSCBToggled(bool),
 }
 
 
@@ -44,29 +49,122 @@ impl Calculator{
 
     fn update (&mut self, message: Message){
         match message{
-            Message::Evaluate=>{
-                todo!();
+            Message::XSContentChanged(input) => {
+                self.xs_targ_iops = input;
+                Self::evaluate(self, 0);
             },
-            Message::Clear=>{
-                self.xs_value="".to_string();
-            },
+            Message::XSCBToggled(new_status) => {
+                self.xs_4u_cb = new_status;
+                Self::evaluate(self, 0);
+            }
         }
         
     }
 
+
+
+
     //manually building the GUI, gonna be messy, sorry
     fn view (&self) -> Element<'_, Message> {
 
+        let xs_text_box = text_input("Target IOPS here", &self.xs_targ_iops).on_input(Message::XSContentChanged);
+        let xs_4u_check_box = checkbox(self.xs_4u_cb).on_toggle(Message::XSCBToggled);
+        let xs_2u_out = text(self.xs_cnt_2u.clone());
+        let xs_4u_out = text(self.xs_cnt_4u.clone());
 
+        
         row![
-            Image::new(self.xs_img_handle.clone())
+            Image::new(self.xs_img_handle.clone()),
+            xs_text_box,
+            xs_4u_check_box,
+            column![
+                xs_4u_out,
+                xs_2u_out,
+            ],
+
+
+            
         ]
+
+
+
 
         //.width(Length::Fill)
         .padding(10)
         .into()
 
     }
+
+
+    //calculation function that runs every time users input is changed. Currently configured for one user
+    //the writing function will be intelligent and write to the server specific variables
+    fn evaluate (&mut self, serv_type: i8){        
+        
+        let mut total = 0;
+        let mut target_4u = 0;
+        let mut target_2u = 0;
+        let mut value = 0;
+        let mut cb_state = false;
+
+        //match statement to set the server type specific variables; specifically the input, and the checkbox st
+        match serv_type{
+            0 => {
+                //checking if input is valid from the user; if not, it will throw an error, if it is valid, it will set the total variable to the input.
+                let test = self.xs_targ_iops.parse::<i32>();
+                match test {
+                    Err(e) => {self.xs_cnt_2u = "0".to_string(); println!("Error encountered: {}", e)},
+                    Ok(ok) => {total = total + ok; println!("Valid input")}, 
+                }
+                cb_state = self.xs_4u_cb
+            },
+            _ => {println!("Oopsie poopsies");},
+        }
+
+
+
+        //checking if the 4u available box is ticked, performing math accordingly. Math is messy, but no casting is needed to floats for calculating
+        if cb_state {
+            target_4u = total/12000;
+            value = target_4u * 12000;
+            target_2u = (total-value)/5000;
+            
+            //checking if another 2u is needed
+            if (target_4u * 12000)+(target_2u * 5000) < total{
+                target_2u += 1;
+            }
+        } 
+        
+        //same math as above to calculate server counts, but forcing 4u count to 0
+        else{
+            target_4u = 0;
+            value = target_4u * 12000;
+            target_2u = (total-value)/5000;
+            
+            //checking if another 2u is needed
+            if (target_4u * 12000)+(target_2u * 5000) < total{
+                target_2u += 1;
+            }
+        }
+
+
+
+        //final setting of server specific information
+        match serv_type{
+            0 => {
+                self.xs_cnt_4u = target_4u.to_string();
+                self.xs_cnt_2u = target_2u.to_string();
+            },
+            _ => {println!("Oopsie poopsies2");},
+        }
+
+
+
+
+
+    }
+
+
+
 }
 
 
